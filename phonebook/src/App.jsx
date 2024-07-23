@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 const Filter = ({ newFilter, setNewFilter }) => {
   return (
@@ -9,14 +10,11 @@ const Filter = ({ newFilter, setNewFilter }) => {
   );
 };
 
-const Form = ({
-  persons,
-  setPersons,
-  newName,
-  setNewName,
-  newNumber,
-  setNewNumber,
-}) => {
+const Form = ({ props }) => {
+  const [persons, setPersons, newName, setNewName, newNumber, setNewNumber] = [
+    ...props,
+  ];
+
   const addPerson = (e) => {
     e.preventDefault();
 
@@ -74,15 +72,22 @@ const Persons = ({ persons, newFilter }) => {
 };
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Arto Hellas", number: "040-123456", id: 1 },
-    { name: "Ada Lovelace", number: "39-44-5323523", id: 2 },
-    { name: "Dan Abramov", number: "12-43-234345", id: 3 },
-    { name: "Mary Poppendieck", number: "39-23-6423122", id: 4 },
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newFilter, setNewFilter] = useState("");
+
+  // useEffect(() => {
+  //   fetch("http://localhost:3001/persons")
+  //     .then((response) => response.json())
+  //     .then((data) => setPersons(data));
+  // }, []);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:3001/persons")
+      .then((response) => setPersons(response.data));
+  }, []);
 
   return (
     <div>
@@ -90,12 +95,14 @@ const App = () => {
       <Filter newFilter={newFilter} setNewFilter={setNewFilter} />
       <h2>add a new</h2>
       <Form
-        persons={persons}
-        setPersons={setPersons}
-        newName={newName}
-        setNewName={setNewName}
-        newNumber={newNumber}
-        setNewNumber={setNewNumber}
+        props={[
+          persons,
+          setPersons,
+          newName,
+          setNewName,
+          newNumber,
+          setNewNumber,
+        ]}
       />
       <h2>Numbers</h2>
       <Persons persons={persons} newFilter={newFilter} />
