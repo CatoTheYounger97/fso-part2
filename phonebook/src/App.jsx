@@ -11,9 +11,16 @@ const Filter = ({ newFilter, setNewFilter }) => {
 };
 
 const Form = ({ props }) => {
-  const [persons, setPersons, newName, setNewName, newNumber, setNewNumber] = [
-    ...props,
-  ];
+  const [
+    persons,
+    setPersons,
+    newName,
+    setNewName,
+    newNumber,
+    setNewNumber,
+    setNotifyMessage,
+    setNotifyColor,
+  ] = [...props];
 
   const addPerson = (e) => {
     e.preventDefault();
@@ -35,7 +42,17 @@ const Form = ({ props }) => {
         setPersons(persons.concat(response.data));
         setNewName("");
         setNewNumber("");
+
+        showNotificationFiveSec(`Added ${response.data.name}`);
       });
+  };
+
+  const showNotificationFiveSec = (message) => {
+    setNotifyColor("green");
+    setNotifyMessage(message);
+    setTimeout(() => {
+      setNotifyMessage(null);
+    }, 5000);
   };
 
   const updateNumber = (person) => {
@@ -47,6 +64,8 @@ const Form = ({ props }) => {
       personService.getAll().then((response) => setPersons(response));
       setNewName("");
       setNewNumber("");
+
+      showNotificationFiveSec(`Updated number for ${person.name}`);
     });
   };
 
@@ -70,7 +89,13 @@ const Form = ({ props }) => {
   );
 };
 
-const Persons = ({ persons, setPersons, newFilter }) => {
+const Persons = ({
+  persons,
+  setPersons,
+  newFilter,
+  setNotifyMessage,
+  setNotifyColor,
+}) => {
   const visiblePersons =
     newFilter === ""
       ? persons
@@ -80,7 +105,15 @@ const Persons = ({ persons, setPersons, newFilter }) => {
 
   const deletePerson = (delPerson) => {
     if (window.confirm(`Delete ${delPerson.name}`)) {
-      personService.remove(delPerson.id);
+      personService.remove(delPerson.id).catch(() => {
+        setNotifyColor("red");
+        setNotifyMessage(
+          `Information of ${delPerson.name} has already been removed from this server`
+        );
+        setTimeout(() => {
+          setNotifyMessage(null);
+        }, 5000);
+      });
       setPersons(persons.filter((p) => p.id !== delPerson.id));
     }
   };
@@ -101,11 +134,29 @@ const Persons = ({ persons, setPersons, newFilter }) => {
   );
 };
 
+const Notification = ({ message, notifyColor }) => {
+  if (message === null) return null;
+
+  const notifyStyle = {
+    color: notifyColor,
+    background: "lightgrey",
+    fontSize: "20px",
+    borderStyle: "solid",
+    borderRadius: "5px",
+    padding: "10px",
+    marginBottom: "10px",
+  };
+
+  return <div style={notifyStyle}>{message}</div>;
+};
+
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newFilter, setNewFilter] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState(null);
+  const [notifyColor, setNotifyColor] = useState("green");
 
   // useEffect(() => {
   //   fetch("http://localhost:3001/persons")
@@ -120,6 +171,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notifyMessage} notifyColor={notifyColor} />
       <Filter newFilter={newFilter} setNewFilter={setNewFilter} />
       <h2>add a new</h2>
       <Form
@@ -130,6 +182,8 @@ const App = () => {
           setNewName,
           newNumber,
           setNewNumber,
+          setNotifyMessage,
+          setNotifyColor,
         ]}
       />
       <h2>Numbers</h2>
@@ -137,6 +191,8 @@ const App = () => {
         persons={persons}
         setPersons={setPersons}
         newFilter={newFilter}
+        setNotifyMessage={setNotifyMessage}
+        setNotifyColor={setNotifyColor}
       />
     </div>
   );
