@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import personService from "./services/persons";
 
 const Filter = ({ newFilter, setNewFilter }) => {
   return (
@@ -20,13 +20,34 @@ const Form = ({ props }) => {
 
     if (!newName) return;
     if (persons.find((p) => p.name === newName)) {
-      alert(`${newName} is already added to phonebook`);
+      if (
+        window.confirm(
+          `${newName} is already added to phonebook, replace the old number with a new one?`
+        )
+      ) {
+        updateNumber(persons.find((p) => p.name === newName));
+      }
       return;
     }
+    personService
+      .create({ name: newName, number: newNumber })
+      .then((response) => {
+        setPersons(persons.concat(response.data));
+        setNewName("");
+        setNewNumber("");
+      });
+  };
 
-    setPersons(persons.concat({ name: newName, number: newNumber }));
-    setNewName("");
-    setNewNumber("");
+  const updateNumber = (person) => {
+    const updatedPerson = {
+      name: person.name,
+      number: newNumber,
+    };
+    personService.update(person.id, updatedPerson).then(() => {
+      personService.getAll().then((response) => setPersons(response));
+      setNewName("");
+      setNewNumber("");
+    });
   };
 
   return (
@@ -49,7 +70,7 @@ const Form = ({ props }) => {
   );
 };
 
-const Persons = ({ persons, newFilter }) => {
+const Persons = ({ persons, setPersons, newFilter }) => {
   const visiblePersons =
     newFilter === ""
       ? persons
@@ -57,13 +78,22 @@ const Persons = ({ persons, newFilter }) => {
           person.name.toLowerCase().includes(newFilter.toLowerCase())
         );
 
+  const deletePerson = (delPerson) => {
+    if (window.confirm(`Delete ${delPerson.name}`)) {
+      personService.remove(delPerson.id);
+      setPersons(persons.filter((p) => p.id !== delPerson.id));
+    }
+  };
+
   return (
     <div>
       {visiblePersons.map((person) => {
         return (
           <div key={person.name}>
-            <div>{person.name}</div>
-            <div>{person.number}</div>
+            <div>
+              {person.name} {person.number}{" "}
+              <button onClick={() => deletePerson(person)}>delete</button>
+            </div>
           </div>
         );
       })}
@@ -84,9 +114,7 @@ const App = () => {
   // }, []);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3001/persons")
-      .then((response) => setPersons(response.data));
+    personService.getAll().then((persons) => setPersons(persons));
   }, []);
 
   return (
@@ -105,7 +133,11 @@ const App = () => {
         ]}
       />
       <h2>Numbers</h2>
-      <Persons persons={persons} newFilter={newFilter} />
+      <Persons
+        persons={persons}
+        setPersons={setPersons}
+        newFilter={newFilter}
+      />
     </div>
   );
 };
